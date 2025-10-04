@@ -16,6 +16,21 @@ from utils.visualization import (
 
 st.set_page_config(page_title="Data Upload", page_icon="📁", layout="wide")
 
+if 'df_original' not in st.session_state:
+    st.session_state.df_original = None
+if 'text_column' not in st.session_state:
+    st.session_state.text_column = None
+if 'df_cleaned' not in st.session_state:
+    st.session_state.df_cleaned = None
+if 'preprocessing_options' not in st.session_state:
+    st.session_state.preprocessing_options = {
+        'use_stemming': True,
+        'use_stopwords': True,
+        'min_text_length': 15
+    }
+if 'normalization_dict' not in st.session_state:
+    st.session_state.normalization_dict = DEFAULT_NORMALIZATION_DICT.copy()
+
 st.title("📁 Data Upload & Preprocessing")
 st.markdown("Upload your dataset and configure text preprocessing options")
 
