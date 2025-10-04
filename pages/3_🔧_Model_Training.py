@@ -14,6 +14,23 @@ from utils.visualization import (
 
 st.set_page_config(page_title="Model Training", page_icon="🔧", layout="wide")
 
+# Initialize session state variables for this page
+if 'df_sentiment' not in st.session_state:
+    st.session_state.df_sentiment = None
+if 'selected_models' not in st.session_state:
+    st.session_state.selected_models = ['SVM']
+if 'analysis_mode' not in st.session_state:
+    st.session_state.analysis_mode = 'Quick Mode'
+if 'model_params' not in st.session_state:
+    st.session_state.model_params = {
+        'test_size': 0.2,
+        'cv_folds': 5,
+        'smote_k_neighbors': 5,
+        'random_state': 42
+    }
+if 'trained_models' not in st.session_state:
+    st.session_state.trained_models = {}
+
 st.title("🔧 Model Training & Evaluation")
 st.markdown("Train machine learning models with hyperparameter optimization")
 

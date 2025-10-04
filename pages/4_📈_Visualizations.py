@@ -15,6 +15,12 @@ from utils.model_training import get_feature_importance, compare_models
 
 st.set_page_config(page_title="Visualizations", page_icon="📈", layout="wide")
 
+# Initialize session state variables for this page
+if 'df_sentiment' not in st.session_state:
+    st.session_state.df_sentiment = None
+if 'trained_models' not in st.session_state:
+    st.session_state.trained_models = {}
+
 st.title("📈 Interactive Visualizations")
 st.markdown("Comprehensive visual analysis of sentiment data and model performance")
 

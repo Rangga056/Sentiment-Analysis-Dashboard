@@ -10,6 +10,20 @@ from utils.model_training import get_misclassified_samples, get_feature_importan
 
 st.set_page_config(page_title="Error Analysis", page_icon="🔍", layout="wide")
 
+# Initialize session state variables for this page
+if 'trained_models' not in st.session_state:
+    st.session_state.trained_models = {}
+if 'X_test' not in st.session_state:
+    st.session_state.X_test = None
+if 'y_test' not in st.session_state:
+    st.session_state.y_test = None
+if 'sentiment_map' not in st.session_state:
+    st.session_state.sentiment_map = None
+if 'analysis_mode' not in st.session_state:
+    st.session_state.analysis_mode = 'Quick Mode'
+if 'df_sentiment' not in st.session_state:
+    st.session_state.df_sentiment = None
+
 st.title("🔍 Error Analysis & Model Insights")
 st.markdown("Deep dive into model performance, misclassifications, and improvement opportunities")
 

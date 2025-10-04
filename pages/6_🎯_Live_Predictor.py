@@ -10,6 +10,28 @@ from utils.sentiment_analysis import predict_single_text
 
 st.set_page_config(page_title="Live Predictor", page_icon="🎯", layout="wide")
 
+# Initialize session state variables for this page
+if 'bert_model_loaded' not in st.session_state:
+    st.session_state.bert_model_loaded = False
+if 'prediction_input' not in st.session_state:
+    st.session_state.prediction_input = ""
+if 'run_prediction' not in st.session_state:
+    st.session_state.run_prediction = False
+if 'normalization_dict' not in st.session_state:
+    from utils.text_processing import DEFAULT_NORMALIZATION_DICT
+    st.session_state.normalization_dict = DEFAULT_NORMALIZATION_DICT.copy()
+if 'preprocessing_options' not in st.session_state:
+    st.session_state.preprocessing_options = {'use_stemming': True, 'use_stopwords': True}
+if 'sentiment_analyzer' not in st.session_state:
+    st.session_state.sentiment_analyzer = None
+if 'model_type' not in st.session_state:
+    st.session_state.model_type = None
+if 'veto_words' not in st.session_state:
+    from utils.text_processing import DEFAULT_VETO_WORDS
+    st.session_state.veto_words = DEFAULT_VETO_WORDS.copy()
+if 'trained_models' not in st.session_state:
+    st.session_state.trained_models = {}
+
 st.title("🎯 Live Sentiment Predictor")
 st.markdown("Test sentiment analysis on new text in real-time")
 

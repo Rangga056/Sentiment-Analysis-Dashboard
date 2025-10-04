@@ -17,6 +17,19 @@ from utils.visualization import (
 
 st.set_page_config(page_title="Sentiment Analysis", page_icon="🤖", layout="wide")
 
+if 'df_cleaned' not in st.session_state:
+    st.session_state.df_cleaned = None
+if 'bert_model_loaded' not in st.session_state:
+    st.session_state.bert_model_loaded = False
+if 'sentiment_analyzer' not in st.session_state:
+    st.session_state.sentiment_analyzer = None
+if 'model_type' not in st.session_state:
+    st.session_state.model_type = None
+if 'df_sentiment' not in st.session_state:
+    st.session_state.df_sentiment = None
+if 'veto_words' not in st.session_state:
+    st.session_state.veto_words = DEFAULT_VETO_WORDS.copy()
+
 st.title("🤖 Sentiment Analysis")
 st.markdown("BERT-based sentiment detection with custom rule-based refinement")
 

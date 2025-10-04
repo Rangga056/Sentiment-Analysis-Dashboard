@@ -12,6 +12,19 @@ from utils.sentiment_analysis import get_sentiment_distribution
 
 st.set_page_config(page_title="Export & Reports", page_icon="💾", layout="wide")
 
+# Initialize session state variables for this page
+if 'df_original' not in st.session_state:
+    st.session_state.df_original = None
+if 'df_cleaned' not in st.session_state:
+    st.session_state.df_cleaned = None
+if 'df_sentiment' not in st.session_state:
+    st.session_state.df_sentiment = None
+if 'trained_models' not in st.session_state:
+    st.session_state.trained_models = {}
+if 'normalization_dict' not in st.session_state:
+    from utils.text_processing import DEFAULT_NORMALIZATION_DICT
+    st.session_state.normalization_dict = DEFAULT_NORMALIZATION_DICT.copy()
+
 st.title("💾 Export & Reports")
 st.markdown("Download analysis results, trained models, and comprehensive reports")
 
