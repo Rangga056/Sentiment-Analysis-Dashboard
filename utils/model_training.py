@@ -162,7 +162,8 @@ def train_single_model(X_train, X_test, y_train, y_test, model_name,
         'confusion_matrix': confusion_matrix(y_test, y_pred),
         'classification_report': classification_report(y_test, y_pred, 
                                                        target_names=['negative', 'neutral', 'positive'],
-                                                       output_dict=True, zero_division=0)
+                                                       output_dict=True, zero_division=0),
+        'predictions': y_pred
     }
     
     # ROC curve data for multiclass
@@ -184,9 +185,7 @@ def train_single_model(X_train, X_test, y_train, y_test, model_name,
         'model': best_model,
         'best_params': grid_search.best_params_,
         'best_score': grid_search.best_score_,
-        'metrics': metrics,
-        'y_pred': y_pred,
-        'y_proba': y_proba
+        'metrics': metrics
     }
 
 
@@ -304,7 +303,7 @@ def get_feature_importance(model, top_n=20):
         return None
 
 
-def get_misclassified_samples(X_test, y_test, y_pred, n_samples=10):
+def get_misclassified_samples(X_test, y_test, y_pred, sentiment_map, max_samples=100):
     """
     Get misclassified samples for analysis
     
@@ -312,7 +311,8 @@ def get_misclassified_samples(X_test, y_test, y_pred, n_samples=10):
         X_test: Test texts
         y_test: True labels
         y_pred: Predicted labels
-        n_samples: Number of samples to return
+        sentiment_map: Dictionary mapping labels to names
+        max_samples: Number of samples to return
     
     Returns:
         DataFrame with misclassified samples
@@ -323,16 +323,17 @@ def get_misclassified_samples(X_test, y_test, y_pred, n_samples=10):
     if len(misclassified_idx) == 0:
         return pd.DataFrame()
     
-    # Limit to n_samples
-    sample_idx = misclassified_idx[:n_samples]
+    # Limit to max_samples
+    sample_idx = misclassified_idx[:max_samples]
     
     # Create DataFrame
-    sentiment_map_reverse = {0: 'negative', 1: 'neutral', 2: 'positive'}
+    sentiment_map_reverse = {v: k for k, v in sentiment_map.items()}
     
     misclassified = pd.DataFrame({
-        'text': X_test[sample_idx],
-        'true_label': [sentiment_map_reverse[y] for y in y_test[sample_idx]],
-        'predicted_label': [sentiment_map_reverse[y] for y in y_pred[sample_idx]]
+        'Text': X_test[sample_idx],
+        'True Label': [sentiment_map_reverse.get(y, 'Unknown') for y in y_test[sample_idx]],
+        'Predicted Label': [sentiment_map_reverse.get(y, 'Unknown') for y in y_pred[sample_idx]]
     })
     
     return misclassified
+

@@ -8,9 +8,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from utils.model_training import get_misclassified_samples, get_feature_importance
 
-st.set_page_config(page_title="Error Analysis", page_icon="🔍", layout="wide")
-
-# Initialize session state variables for this page
+# Initialize session state variables
 if 'trained_models' not in st.session_state:
     st.session_state.trained_models = {}
 if 'X_test' not in st.session_state:
@@ -23,6 +21,8 @@ if 'analysis_mode' not in st.session_state:
     st.session_state.analysis_mode = 'Quick Mode'
 if 'df_sentiment' not in st.session_state:
     st.session_state.df_sentiment = None
+
+st.set_page_config(page_title="Error Analysis", page_icon="🔍", layout="wide")
 
 st.title("🔍 Error Analysis & Model Insights")
 st.markdown("Deep dive into model performance, misclassifications, and improvement opportunities")
@@ -241,7 +241,7 @@ with tab2:
         
         # Get correct predictions for comparison
         correct_mask = st.session_state.y_test == predictions
-        correct_texts = st.session_state.X_test[correct_mask]
+        correct_texts = pd.Series(st.session_state.X_test[correct_mask])
         
         col1, col2 = st.columns(2)
         
@@ -324,19 +324,19 @@ with tab3:
             reverse_map = {v: k for k, v in st.session_state.sentiment_map.items()}
             
             disagree_df = pd.DataFrame({
-                'Text': st.session_state.X_test.iloc[disagree_indices].values,
-                'True Label': [reverse_map[y] for y in st.session_state.y_test.iloc[disagree_indices].values],
+                'Text': st.session_state.X_test[disagree_indices],
+                'True Label': [reverse_map[y] for y in st.session_state.y_test[disagree_indices]],
                 f'{model1} Prediction': [reverse_map[p] for p in pred1[disagree_indices]],
                 f'{model2} Prediction': [reverse_map[p] for p in pred2[disagree_indices]]
             })
             
             # Add correctness indicators
             disagree_df[f'{model1} Correct'] = [
-                '✓' if reverse_map[pred1[i]] == reverse_map[st.session_state.y_test.iloc[i]] else '✗'
+                '✓' if reverse_map[pred1[i]] == reverse_map[st.session_state.y_test[i]] else '✗'
                 for i in disagree_indices
             ]
             disagree_df[f'{model2} Correct'] = [
-                '✓' if reverse_map[pred2[i]] == reverse_map[st.session_state.y_test.iloc[i]] else '✗'
+                '✓' if reverse_map[pred2[i]] == reverse_map[st.session_state.y_test[i]] else '✗'
                 for i in disagree_indices
             ]
             
@@ -490,7 +490,7 @@ with tab4:
         avg_error_length = error_df['text_length'].mean()
         
         correct_mask = st.session_state.y_test == best_metrics['predictions']
-        correct_texts = st.session_state.X_test[correct_mask]
+        correct_texts = pd.Series(st.session_state.X_test[correct_mask])
         avg_correct_length = correct_texts.str.len().mean()
         
         if avg_error_length < avg_correct_length * 0.7:
@@ -534,7 +534,7 @@ with tab4:
         })
     
     # Dataset recommendations
-    if len(st.session_state.df_sentiment) < 500:
+    if st.session_state.df_sentiment is not None and len(st.session_state.df_sentiment) < 500:
         recommendations.append({
             'Category': 'Data Collection',
             'Issue': 'Small dataset',
@@ -656,3 +656,4 @@ with tab4:
 
 st.markdown("---")
 st.caption("💡 Use these insights to iterate on your model and improve performance systematically")
+
