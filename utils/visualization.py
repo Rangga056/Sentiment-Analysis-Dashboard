@@ -1,6 +1,6 @@
 # ============================================================================
 # VISUALIZATION UTILITIES
-# Interactive Plotly charts for sentiment analysis
+# Functions for creating charts and visualizations
 # ============================================================================
 
 import plotly.express as px
@@ -9,34 +9,38 @@ from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 from wordcloud import WordCloud
-import matplotlib.pyplot as plt
-import io
 import base64
+from io import BytesIO
+
+
+# Color schemes
+SENTIMENT_COLORS = {
+    'positive': '#2ecc71',
+    'neutral': '#95a5a6', 
+    'negative': '#e74c3c'
+}
 
 
 def plot_sentiment_distribution(df, title="Sentiment Distribution"):
     """
-    Create interactive bar chart for sentiment distribution
+    Create bar chart of sentiment distribution
     """
     sentiment_counts = df['sentiment_category'].value_counts()
-    colors_map = {'positive': '#2ecc71', 'neutral': '#95a5a6', 'negative': '#e74c3c'}
     
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
+    fig = px.bar(
         x=sentiment_counts.index,
         y=sentiment_counts.values,
-        text=[f"{v}<br>({v/len(df)*100:.1f}%)" for v in sentiment_counts.values],
-        textposition='outside',
-        marker_color=[colors_map.get(s, '#3498db') for s in sentiment_counts.index],
-        hovertemplate='<b>%{x}</b><br>Count: %{y}<br><extra></extra>'
-    ))
+        labels={'x': 'Sentiment', 'y': 'Count'},
+        title=title,
+        color=sentiment_counts.index,
+        color_discrete_map=SENTIMENT_COLORS
+    )
     
     fig.update_layout(
-        title=title,
-        xaxis_title="Sentiment Category",
-        yaxis_title="Count",
         template="plotly_white",
-        height=500
+        showlegend=False,
+        xaxis_title="Sentiment Category",
+        yaxis_title="Number of Texts"
     )
     
     return fig
@@ -44,68 +48,176 @@ def plot_sentiment_distribution(df, title="Sentiment Distribution"):
 
 def plot_sentiment_pie(df, title="Sentiment Proportion"):
     """
-    Create interactive pie chart for sentiment proportion
+    Create pie chart of sentiment distribution
     """
     sentiment_counts = df['sentiment_category'].value_counts()
-    colors_map = {'positive': '#2ecc71', 'neutral': '#95a5a6', 'negative': '#e74c3c'}
     
-    fig = go.Figure(data=[go.Pie(
-        labels=sentiment_counts.index,
+    fig = px.pie(
         values=sentiment_counts.values,
-        hole=0.4,
-        marker=dict(colors=[colors_map.get(s, '#3498db') for s in sentiment_counts.index]),
-        textinfo='label+percent',
-        hovertemplate='<b>%{label}</b><br>Count: %{value}<br>Percentage: %{percent}<extra></extra>'
-    )])
+        names=sentiment_counts.index,
+        title=title,
+        color=sentiment_counts.index,
+        color_discrete_map=SENTIMENT_COLORS
+    )
+    
+    fig.update_traces(textposition='inside', textinfo='percent+label')
+    fig.update_layout(template="plotly_white")
+    
+    return fig
+
+
+def plot_confidence_distribution(df, title="Confidence Level Distribution"):
+    """
+    Create bar chart of confidence levels
+    """
+    confidence_order = ['low', 'medium', 'high']
+    confidence_counts = df['confidence_level'].value_counts().reindex(confidence_order, fill_value=0)
+    
+    fig = px.bar(
+        x=confidence_counts.index,
+        y=confidence_counts.values,
+        labels={'x': 'Confidence Level', 'y': 'Count'},
+        title=title,
+        color=confidence_counts.index,
+        color_discrete_sequence=['#e74c3c', '#f39c12', '#2ecc71']
+    )
+    
+    fig.update_layout(
+        template="plotly_white",
+        showlegend=False,
+        xaxis_title="Confidence Level",
+        yaxis_title="Number of Texts"
+    )
+    
+    return fig
+
+
+def plot_sentiment_by_confidence(df, title="Sentiment by Confidence Level"):
+    """
+    Create grouped bar chart showing sentiment distribution per confidence level
+    """
+    # Create crosstab
+    crosstab = pd.crosstab(df['confidence_level'], df['sentiment_category'])
+    
+    # Reorder confidence levels
+    confidence_order = ['low', 'medium', 'high']
+    if all(level in crosstab.index for level in confidence_order):
+        crosstab = crosstab.reindex(confidence_order)
+    
+    fig = go.Figure()
+    
+    for sentiment in ['negative', 'neutral', 'positive']:
+        if sentiment in crosstab.columns:
+            fig.add_trace(go.Bar(
+                name=sentiment.capitalize(),
+                x=crosstab.index,
+                y=crosstab[sentiment],
+                marker_color=SENTIMENT_COLORS[sentiment]
+            ))
     
     fig.update_layout(
         title=title,
-        template="plotly_white",
-        height=500
-    )
-    
-    return fig
-
-
-def plot_confidence_distribution(df):
-    """
-    Plot confidence level distribution
-    """
-    confidence_counts = df['confidence_level'].value_counts()
-    colors = ['#e74c3c', '#f39c12', '#2ecc71']
-    
-    fig = go.Figure(data=[go.Bar(
-        x=confidence_counts.index,
-        y=confidence_counts.values,
-        marker_color=colors[:len(confidence_counts)],
-        text=[f"{v} ({v/len(df)*100:.1f}%)" for v in confidence_counts.values],
-        textposition='outside'
-    )])
-    
-    fig.update_layout(
-        title="Confidence Level Distribution",
         xaxis_title="Confidence Level",
         yaxis_title="Count",
+        barmode='group',
         template="plotly_white",
-        height=400
+        legend_title="Sentiment"
     )
     
     return fig
+
+
+def plot_text_length_distribution(df, text_column, title="Text Length Distribution"):
+    """
+    Create histogram of text lengths
+    """
+    text_lengths = df[text_column].str.len()
+    
+    fig = px.histogram(
+        x=text_lengths,
+        nbins=50,
+        labels={'x': 'Text Length (characters)', 'y': 'Frequency'},
+        title=title,
+        color_discrete_sequence=['#3498db']
+    )
+    
+    fig.update_layout(
+        template="plotly_white",
+        showlegend=False
+    )
+    
+    return fig
+
+
+def plot_word_count_distribution(df, text_column, title="Word Count Distribution"):
+    """
+    Create histogram of word counts
+    """
+    word_counts = df[text_column].str.split().str.len()
+    
+    fig = px.histogram(
+        x=word_counts,
+        nbins=30,
+        labels={'x': 'Word Count', 'y': 'Frequency'},
+        title=title,
+        color_discrete_sequence=['#9b59b6']
+    )
+    
+    fig.update_layout(
+        template="plotly_white",
+        showlegend=False
+    )
+    
+    return fig
+
+
+def generate_wordcloud(text, colormap='viridis', width=800, height=400):
+    """
+    Generate word cloud and return as base64 image
+    """
+    try:
+        wordcloud = WordCloud(
+            width=width,
+            height=height,
+            background_color='white',
+            colormap=colormap,
+            max_words=100,
+            relative_scaling=0.5,
+            min_font_size=10
+        ).generate(text)
+        
+        # Convert to image
+        img = wordcloud.to_image()
+        
+        # Convert to base64
+        buffered = BytesIO()
+        img.save(buffered, format="PNG")
+        img_str = base64.b64encode(buffered.getvalue()).decode()
+        
+        return f"data:image/png;base64,{img_str}"
+    
+    except Exception as e:
+        print(f"Error generating wordcloud: {e}")
+        return None
 
 
 def plot_confusion_matrix(cm, class_names, title="Confusion Matrix"):
     """
-    Create interactive heatmap for confusion matrix
+    Create heatmap confusion matrix
     """
+    # Normalize confusion matrix
+    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    
     fig = go.Figure(data=go.Heatmap(
-        z=cm,
+        z=cm_normalized,
         x=class_names,
         y=class_names,
-        colorscale='Blues',
+        colorscale='RdYlGn',
         text=cm,
         texttemplate='%{text}',
         textfont={"size": 16},
-        hovertemplate='True: %{y}<br>Predicted: %{x}<br>Count: %{z}<extra></extra>'
+        hoverongaps=False,
+        colorbar=dict(title="Normalized Value")
     ))
     
     fig.update_layout(
@@ -113,27 +225,31 @@ def plot_confusion_matrix(cm, class_names, title="Confusion Matrix"):
         xaxis_title="Predicted Label",
         yaxis_title="True Label",
         template="plotly_white",
+        width=600,
         height=500
     )
     
     return fig
 
 
-def plot_roc_curves(roc_data, class_names):
+def plot_roc_curves(roc_data, class_names, title="ROC Curves"):
     """
-    Plot ROC curves for multi-class classification
+    Create ROC curves for multiclass classification
     """
     fig = go.Figure()
+    
     colors = ['#e74c3c', '#95a5a6', '#2ecc71']
     
-    for i, (color, class_name) in enumerate(zip(colors, class_names)):
-        fig.add_trace(go.Scatter(
-            x=roc_data['fpr'][i],
-            y=roc_data['tpr'][i],
-            mode='lines',
-            name=f'{class_name} (AUC = {roc_data["auc"][i]:.3f})',
-            line=dict(color=color, width=2)
-        ))
+    for i, class_name in enumerate(class_names):
+        if class_name in roc_data:
+            data = roc_data[class_name]
+            fig.add_trace(go.Scatter(
+                x=data['fpr'],
+                y=data['tpr'],
+                mode='lines',
+                name=f"{class_name} (AUC = {data['auc']:.3f})",
+                line=dict(color=colors[i], width=2)
+            ))
     
     # Add diagonal line
     fig.add_trace(go.Scatter(
@@ -141,195 +257,85 @@ def plot_roc_curves(roc_data, class_names):
         y=[0, 1],
         mode='lines',
         name='Random Classifier',
-        line=dict(color='gray', width=2, dash='dash')
+        line=dict(color='gray', width=1, dash='dash')
     ))
     
     fig.update_layout(
-        title="ROC Curves - Multi-class Classification",
+        title=title,
         xaxis_title="False Positive Rate",
         yaxis_title="True Positive Rate",
         template="plotly_white",
-        height=600,
-        legend=dict(x=0.6, y=0.1)
+        legend=dict(x=0.6, y=0.1),
+        width=700,
+        height=600
     )
     
     return fig
 
 
-def plot_text_length_distribution(df, text_column):
+def plot_feature_importance(importance_dict, sentiment, top_n=15):
     """
-    Plot text length distribution
+    Plot feature importance for a specific sentiment
     """
-    df['text_len'] = df[text_column].str.len()
-    
-    fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        x=df['text_len'],
-        nbinsx=50,
-        marker_color='#3498db',
-        hovertemplate='Length: %{x}<br>Count: %{y}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title="Text Length Distribution",
-        xaxis_title="Text Length (characters)",
-        yaxis_title="Frequency",
-        template="plotly_white",
-        height=400
-    )
-    
-    return fig
-
-
-def plot_word_count_distribution(df, text_column):
-    """
-    Plot word count distribution
-    """
-    df['word_cnt'] = df[text_column].str.split().str.len()
-    
-    fig = go.Figure()
-    fig.add_trace(go.Histogram(
-        x=df['word_cnt'],
-        nbinsx=30,
-        marker_color='#9b59b6',
-        hovertemplate='Words: %{x}<br>Count: %{y}<extra></extra>'
-    ))
-    
-    fig.update_layout(
-        title="Word Count Distribution",
-        xaxis_title="Number of Words",
-        yaxis_title="Frequency",
-        template="plotly_white",
-        height=400
-    )
-    
-    return fig
-
-
-def generate_wordcloud(text_data, colormap='viridis'):
-    """
-    Generate word cloud and return as base64 image
-    """
-    if not text_data or len(text_data.split()) < 10:
+    if not importance_dict or sentiment not in importance_dict:
         return None
     
-    wordcloud = WordCloud(
-        width=800,
-        height=400,
-        background_color='white',
-        colormap=colormap,
-        max_words=100,
-        collocations=False
-    ).generate(text_data)
+    data = importance_dict[sentiment]
     
-    # Convert to image
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wordcloud, interpolation='bilinear')
-    ax.axis('off')
+    # Get top features
+    positive_features = data.get('positive', [])[:top_n]
     
-    # Save to buffer
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    plt.close()
+    if not positive_features:
+        return None
     
-    # Convert to base64
-    img_base64 = base64.b64encode(buf.read()).decode()
-    return f"data:image/png;base64,{img_base64}"
+    features = [f[0] for f in positive_features]
+    values = [f[1] for f in positive_features]
+    
+    fig = go.Figure(go.Bar(
+        x=values,
+        y=features,
+        orientation='h',
+        marker_color=SENTIMENT_COLORS.get(sentiment, '#3498db')
+    ))
+    
+    fig.update_layout(
+        title=f"Top {top_n} Features for {sentiment.capitalize()} Sentiment",
+        xaxis_title="Importance Score",
+        yaxis_title="Feature",
+        template="plotly_white",
+        height=500
+    )
+    
+    return fig
 
 
-def plot_model_comparison(comparison_df):
+def plot_model_comparison(comparison_df, title="Model Performance Comparison"):
     """
-    Create model comparison bar chart
+    Create grouped bar chart comparing model metrics
     """
+    metrics = ['Accuracy', 'Precision', 'Recall', 'F1-Macro']
+    
     fig = go.Figure()
     
-    metrics = ['Accuracy', 'F1 (Macro)', 'Precision', 'Recall']
     colors = ['#3498db', '#e74c3c', '#2ecc71', '#f39c12']
     
-    for metric, color in zip(metrics, colors):
+    for i, metric in enumerate(metrics):
         if metric in comparison_df.columns:
-            values = comparison_df[metric].apply(lambda x: float(x) if isinstance(x, str) else x)
             fig.add_trace(go.Bar(
                 name=metric,
                 x=comparison_df['Model'],
-                y=values,
-                marker_color=color,
-                text=[f"{v:.3f}" for v in values],
-                textposition='outside'
+                y=comparison_df[metric],
+                marker_color=colors[i]
             ))
     
     fig.update_layout(
-        title="Model Performance Comparison",
+        title=title,
         xaxis_title="Model",
         yaxis_title="Score",
         barmode='group',
         template="plotly_white",
-        height=500,
-        yaxis=dict(range=[0, 1.1])
-    )
-    
-    return fig
-
-
-def plot_feature_importance(importance_data, class_name, top_n=15):
-    """
-    Plot feature importance for a specific class
-    """
-    if importance_data is None or class_name not in importance_data:
-        return None
-    
-    data = importance_data[class_name]
-    features = data['features'][:top_n]
-    scores = data['scores'][:top_n]
-    
-    fig = go.Figure(go.Bar(
-        x=scores,
-        y=features,
-        orientation='h',
-        marker_color='skyblue',
-        text=[f"{s:.3f}" for s in scores],
-        textposition='outside'
-    ))
-    
-    fig.update_layout(
-        title=f"Top {top_n} Important Features for '{class_name}' Class",
-        xaxis_title="Coefficient Score",
-        yaxis_title="Feature",
-        template="plotly_white",
-        height=500,
-        yaxis=dict(autorange="reversed")
-    )
-    
-    return fig
-
-
-def plot_sentiment_by_confidence(df):
-    """
-    Stacked bar chart of sentiment by confidence level
-    """
-    crosstab = pd.crosstab(df['confidence_level'], df['sentiment_category'], normalize='index') * 100
-    
-    fig = go.Figure()
-    colors_map = {'positive': '#2ecc71', 'neutral': '#95a5a6', 'negative': '#e74c3c'}
-    
-    for sentiment in crosstab.columns:
-        fig.add_trace(go.Bar(
-            name=sentiment,
-            x=crosstab.index,
-            y=crosstab[sentiment],
-            marker_color=colors_map.get(sentiment, '#3498db'),
-            text=[f"{v:.1f}%" for v in crosstab[sentiment]],
-            textposition='inside'
-        ))
-    
-    fig.update_layout(
-        title="Sentiment Distribution by Confidence Level",
-        xaxis_title="Confidence Level",
-        yaxis_title="Percentage (%)",
-        barmode='stack',
-        template="plotly_white",
-        height=500
+        legend_title="Metric",
+        yaxis=dict(range=[0, 1])
     )
     
     return fig
